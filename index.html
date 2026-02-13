@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Logowania i Baza Danych</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+<style>
+body {margin:0;padding:0;font-family:'Orbitron',sans-serif;overflow:hidden;height:100vh;background:radial-gradient(circle at center,#1a0000 0%,#000000 80%);color:white;}
+body::before{content:"";position:absolute;width:600px;height:600px;background:red;border-radius:50%;filter:blur(200px);opacity:0.15;animation:pulse 6s infinite alternate;}
+@keyframes pulse{from{transform:scale(1);} to{transform:scale(1.3);}}
+.skull{position:absolute;top:-50px;font-size:24px;color:red;animation:fall linear infinite;opacity:0.3;}
+@keyframes fall{to{transform:translateY(110vh) rotate(360deg);}}
+
+/* LOGIN */
+.login-box{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(10,0,0,0.9);padding:40px;border-radius:12px;box-shadow:0 0 30px red;width:340px;text-align:center;}
+.login-box input{width:100%;padding:10px;margin:10px 0;background:black;border:1px solid red;color:white;border-radius:6px;}
+.input-group{position:relative;}
+.toggle-password{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:red;font-size:18px;}
+.login-box button{width:100%;padding:12px;margin-top:15px;background:black;border:2px solid red;color:red;font-weight:bold;font-family:'Orbitron',sans-serif;text-transform:uppercase;letter-spacing:2px;cursor:pointer;border-radius:6px;position:relative;overflow:hidden;animation:neonPulse 2s infinite alternate;}
+@keyframes neonPulse{0%{box-shadow:0 0 5px red,0 0 10px red,0 0 20px darkred;}50%{box-shadow:0 0 15px red,0 0 30px red,0 0 40px darkred;}100%{box-shadow:0 0 5px red,0 0 10px red,0 0 20px darkred;}}
+.error-message{color:red;margin-top:10px;opacity:0;transition:opacity 0.3s;}
+.error-message.show{opacity:1;}
+
+/* Strona / baza danych */
+.new-page{width:100%;height:100%;display:none;justify-content:center;align-items:center;position:relative;}
+.circle-menu svg{width:350px;height:350px;}
+.segment{cursor:pointer;stroke:black;stroke-width:2;}
+.segment:hover{fill:black;}
+.segment-text{font-size:12px;fill:white;text-anchor:middle;dominant-baseline:middle;}
+
+.database-container{width:80%;max-width:900px;}
+.database-header,.database-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;padding:15px 20px;align-items:center;}
+.database-header{background:black;color:red;font-weight:bold;border-bottom:2px solid red;}
+.database-row{background:rgba(20,0,0,0.8);border-bottom:1px solid red;transition:0.3s;}
+.database-row:hover{background:rgba(60,0,0,0.9);}
+.change-rank-btn{padding:5px 10px;background:red;border:none;color:white;font-weight:bold;border-radius:4px;cursor:pointer;}
+.rank-select{display:none;margin-top:5px;}
+
+.notification{position:fixed;top:20px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:6px;font-weight:bold;display:none;z-index:2000;color:white;}
+.notification.success{background:green;}
+.notification.error{background:darkred;}
+
+#homeButton{position:absolute;top:20px;left:20px;width:50px;height:50px;background:black;border:2px solid red;border-radius:50%;display:flex;justify-content:center;align-items:center;cursor:pointer;color:white;font-size:24px;z-index:1000;animation:neonPulse 2s infinite alternate;transition: transform 0.2s, box-shadow 0.2s;}
+#homeButton:hover{transform:scale(1.1) rotate(-5deg);box-shadow:0 0 15px red,0 0 30px red,0 0 40px white;}
+#homeButton::before{content:"🏠";}
+</style>
+</head>
+<body>
+
+<div class="login-box" id="loginPage">
+<h2>LOGOWANIE</h2>
+<input type="text" id="login" placeholder="Login">
+<div class="input-group">
+<input type="password" id="password" placeholder="Hasło">
+<span class="toggle-password" onclick="togglePassword()">👁</span>
+</div>
+<button onclick="checkLogin()">ZATWIERDŹ</button>
+<div class="error-message" id="error">Nieprawidłowy login lub hasło!</div>
+</div>
+
+<div class="new-page" id="newPage"></div>
+<div class="notification" id="notification"></div>
+
+<script>
+// Lecące czaszki
+for(let i=0;i<40;i++){let s=document.createElement("div");s.classList.add("skull");s.innerHTML="💀";s.style.left=Math.random()*100+"vw";s.style.animationDuration=(4+Math.random()*6)+"s";document.body.appendChild(s);}
+function togglePassword(){const p=document.getElementById("password");p.type=p.type==="password"?"text":"password";}
+
+// Loginy
+const users = {
+    "LeanAzbest":"X9vP2bQ7mL4Z",
+    "DwayneBrooks":"A9b4F2k7L1Qz",
+    "SophieSantiago":"S9p3T8g2Q1Lx"
+};
+
+// Rangi
+const ranks={1:"│ZAWIESZONY│",2:"│REKRUT│",3:"│KADET│",4:"│SZEREGOWY│",5:"│GANGSTA│",6:"│BIG GANGSTA│",7:"│OG│",8:"│MAIN│",9:"│ZARZAD│",10:"│V-LEADER│","LEADER":"👑 ┃LEADER┃"};
+
+// Baza osób
+const database=[
+    {imie:"Lean",nazwisko:"Azbest",uid:"#51679",ranga:9},
+    {imie:"Dwayne",nazwisko:"Brooks",uid:"#126572",ranga:10},
+    {imie:"Sophie",nazwisko:"Suntago",uid:"#53242",ranga:4}
+];
+
+let currentUser=null;
+let loggedUserRank=0; // <- nowa zmienna, określa prawa admina
+
+// Logowanie
+function checkLogin(){
+    const login=document.getElementById("login").value;
+    const pass=document.getElementById("password").value;
+    if(users[login]&&users[login]===pass){
+        currentUser=login;
+        // Pobierz rangę zalogowanego użytkownika przy logowaniu
+        const u = database.find(u => (u.imie+u.nazwisko) === currentUser);
+        loggedUserRank = u ? u.ranga : 0;
+        document.getElementById("loginPage").remove();
+        document.getElementById("newPage").style.display="flex";
+        createCircleMenu();
+    } else {
+        const e=document.getElementById("error");
+        e.classList.add("show");
+        setTimeout(()=>e.classList.remove("show"),3000);
+    }
+}
+
+// Powiadomienia
+function showNotification(msg,type="success"){
+    const n=document.getElementById("notification");
+    n.innerText=msg;
+    n.className="notification "+type;
+    n.style.display="block";
+    setTimeout(()=> n.style.display="none",3000);
+}
+
+// Koło menu
+function createCircleMenu(){
+    const newPage=document.getElementById("newPage");
+    newPage.innerHTML=`<div class="circle-menu"><svg viewBox="0 0 200 200"><path class="segment" d="M100,100 L100,0 A100,100 0 0,1 180.9,58.78 Z" fill="red" onclick="openDatabase()"></path><text class="segment-text" x="140" y="50">Baza Danych</text></svg></div>`;
+    const hb=document.getElementById("homeButton");if(hb) hb.remove();
+}
+
+// Otwórz bazę
+function openDatabase(){
+    const newPage=document.getElementById("newPage");
+    if(!document.getElementById("homeButton")){
+        const hb=document.createElement("div");
+        hb.id="homeButton";
+        hb.title="Powrót do menu";
+        hb.onclick=()=>{createCircleMenu();hb.remove();};
+        document.body.appendChild(hb);
+    }
+
+    // Sprawdzenie czy zalogowany użytkownik ma prawa admina
+    const canChange = [9,10,"LEADER"].includes(loggedUserRank);
+
+    let rows="";
+    database.forEach((p,i)=>{
+        let rName=ranks[p.ranga] || "Brak";
+        let btn = canChange ? `<button class="change-rank-btn" onclick="showRankSelect(${i})">Zmień rangę</button>` : `<button class="change-rank-btn" onclick="noPerm()">Zmień rangę</button>`;
+        rows+=`<div class="database-row"><div>${p.imie}</div><div>${p.nazwisko}</div><div>${p.uid}</div><div>${p.ranga} ${rName}</div><div>${btn}<select class="rank-select" id="rankSelect${i}" onchange="changeRank(${i})">${Object.keys(ranks).map(r=>`<option value="${r}">${r} ${ranks[r]}</option>`).join('')}</select></div></div>`;
+    });
+
+    newPage.innerHTML=`<div class="database-container"><div class="database-header"><div>Imię</div><div>Nazwisko</div><div>UID</div><div>Ranga</div><div>Akcje</div></div>${rows}</div>`;
+}
+
+function showRankSelect(i){document.getElementById(`rankSelect${i}`).style.display="inline-block";}
+function changeRank(i){
+    const s=document.getElementById(`rankSelect${i}`);
+    const nr=s.value;
+    database[i].ranga = isNaN(nr) ? nr : parseInt(nr);
+    s.style.display="none";
+    showNotification("Ranga została zmieniona pomyślnie ✅","success");
+    openDatabase();
+}
+function noPerm(){showNotification("Nie masz permisji ❌","error");}
+</script>
+</body>
+</html>
